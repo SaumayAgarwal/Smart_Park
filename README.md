@@ -1,94 +1,159 @@
-# 🚗 SmartPark - Smart Parking Marketplace
+# 🚗 SmartPark - Smart Parking Management System
 
-SmartPark is a production-grade, full-stack marketplace application that connects parking spot owners with drivers looking for parking. Built with a highly scalable, event-driven microservice architecture, it handles real-time geospatial searches, distributed booking locks, and encrypted QR-code-based check-ins.
+SmartPark is a smart parking management system built using **Java, Spring Boot, MySQL, Redis, Apache Kafka, and Docker**.
 
-## ✨ Key Features
+The system allows users to find and book parking spaces while providing secure authentication, booking management, notifications, and parking operations.
 
-* **Role-Based Access Control (RBAC):** Secure JWT authentication for `DRIVER`, `OWNER`, and `ADMIN` roles.
-* **OTP Email Verification:** Redis-backed one-time passwords for secure user onboarding via Spring Mail.
-* **Geospatial Search:** Uses the Haversine formula to find nearby parking spots based on the driver's GPS coordinates and dynamic filters (price, EV charging, covered parking).
-* **Distributed Locking:** Utilizes **Redis** locks to prevent race conditions and double-booking during high-traffic checkout flows.
-* **Real-Time Notifications:** Event-driven architecture using **Apache Kafka** and **WebSockets (STOMP)** to push live booking confirmations to the frontend.
-* **Cryptographic QR Check-in:** Generates secure HMAC SHA-256 encrypted QR tokens for seamless check-in/check-out scanning by parking owners.
-* **Admin Analytics:** Aggregated financial and user metrics via optimized SQL queries.
-* **Fully Containerized:** One-click deployment using Docker & Docker Compose.
+## ✨ Features
+
+* 🔐 JWT-based authentication
+* 👥 Role-based access control
+* 📧 OTP email verification
+* 🅿️ Parking spot management
+* 📍 Nearby parking search
+* 📅 Parking booking
+* 🔒 Redis-based distributed locking to prevent double booking
+* ⚡ Kafka-based asynchronous notifications
+* 🔔 Email and real-time notifications
+* 📱 QR-based parking check-in/check-out
+* 🗄️ MySQL database
+* 🚀 Docker & Docker Compose support
 
 ## 🛠️ Tech Stack
 
 ### Backend
-* **Framework:** Java 21, Spring Boot 3
-* **Database:** MySQL 8.0 (Spring Data JPA / Hibernate)
-* **Caching & Distributed Locks:** Redis
-* **Message Broker / Event Streaming:** Apache Kafka (Official Apache Image)
-* **Security:** Spring Security, JWT (JSON Web Tokens), HMAC Encryption
-* **Real-time:** Spring WebSockets, STOMP protocol
 
-### Frontend (React)
-* **Framework:** React.js (Vite)
-* **Styling:** Tailwind CSS
-* **Maps:** Leaflet & React-Leaflet
-* **State Management & Routing:** React Router, Context API
-* **QR Tech:** `qrcode.react`, `react-qr-reader`
+* Java
+* Spring Boot
+* Spring Security
+* JWT
+* Spring Data JPA / Hibernate
+* Spring Validation
+* Spring Mail
+* Spring Kafka
+* WebSocket / STOMP
 
-### Infrastructure
-* **Containerization:** Docker, Docker Compose (Multi-stage builds)
+### Database & Infrastructure
+
+* MySQL
+* Redis
+* Apache Kafka
+* Docker
+* Docker Compose
+* Maven
+
+## 🏗️ Architecture
+
+```text
+             Client / Frontend
+                    │
+                    ▼
+             Spring Boot API
+                    │
+       ┌────────────┼────────────┐
+       ▼            ▼            ▼
+     MySQL        Redis        Kafka
+       │            │            │
+       │            │            ▼
+       │            │       Kafka Consumer
+       │            │            │
+       │            │            ▼
+       │            │       Notifications
+       │
+       ▼
+   Application Data
+```
+
+### Redis
+
+Redis is used for:
+
+* OTP storage
+* Caching
+* Temporary booking locks
+* Preventing concurrent booking conflicts
+
+### Kafka
+
+Kafka is used for asynchronous event processing and notifications.
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-You only need one thing installed on your machine to run the entire backend infrastructure:
-* [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
-### Running the Application
+* Git
+* Docker Desktop
 
-1. **Clone the repository**
-   ```bash
-   git clone [git@github.com:Neeteshsingh660/SmartPark.git]
-   cd smartpark
+### Clone the Repository
 
+```bash
+git clone git@github.com:Neeteshsingh660/SmartPark.git
+cd SmartPark
+```
 
+### Environment Variables
 
-Start the Infrastructure (MySQL, Redis, Kafka, & Spring Boot) Run the following command in the root directory:
+Create a `.env` file in the project root:
 
-Bash
+```env
+DB_USERNAME=root
+DB_PASSWORD=your_mysql_password
+JWT_SECRET=your_jwt_secret
+MAIL_USERNAME=your_email@gmail.com
+MAIL_PASSWORD=your_gmail_app_password
+```
 
+**Never commit the `.env` file to GitHub.**
+
+### Run the Project
+
+```bash
 docker compose up -d --build
+```
 
+Check the containers:
 
+```bash
+docker ps
+```
 
-Check the logs to ensure successful startup
+View backend logs:
 
-Bash
-
+```bash
 docker compose logs -f backend
+```
 
+The backend runs on:
 
-Access the API The backend is now running at: http://localhost:8080
-📖 API Documentation Overview
+```text
+http://localhost:8080
+```
 
-The API is structured around 4 main domains:
+## 📂 Project Structure
 
-/api/auth/** - Public endpoints for OTP generation, Registration, and Login.
-/api/parking/** - Public endpoints for geospatial searches (/nearby) and spot details.
-/api/owner/** - Protected endpoints for Owners to manage spots and scan QR codes.
-/api/bookings/** & /api/payments/** - Protected endpoints for Drivers to lock spots, process payments, and retrieve QR codes.
+```text
+SmartPark/
+├── src/
+├── .mvn/
+├── Dockerfile
+├── docker-compose.yml
+├── pom.xml
+├── mvnw
+├── mvnw.cmd
+├── .gitignore
+└── README.md
+```
 
-(Note: Import the provided Postman Collection in the /docs folder for detailed request/response payloads).
+## 🔐 Security
 
-🏗️ System Architecture Highlights
-Statelessness: The backend is entirely stateless. Sessions are managed via JWTs, allowing horizontal scaling.
-Concurrency Handling: When a driver initiates a booking, Redis locks the spot for a specific time window, ensuring no other driver can book the exact same timeframe until payment succeeds or times out.
-Asynchronous Processing: Upon payment success, a Kafka event is produced. A separate consumer listens to this event to trigger email receipts and WebSocket notifications, preventing the main HTTP thread from blocking.
-📄 License
+Sensitive values such as database passwords, JWT secrets, and email credentials are stored using environment variables and are excluded from Git using `.gitignore`.
+
+## 👨‍💻 Author
+
+**Neetesh Singh**
+
+GitHub: [Neeteshsingh660](https://github.com/Neeteshsingh660)
+
+## 📄 License
 
 This project is licensed under the MIT License.
-
-
-***
-
-### 💡 A quick tip:
-If you haven't initialized Git yet, you can do so in your terminal (inside the `smartpark` folder) with these commands:
-1. `git init`
-2. `git add .`
-3. `git commit -m "Initial commit: Production-ready Spring Boot Backend"`
-4. Then link it to your GitHub repository 
