@@ -1,0 +1,53 @@
+[1mdiff --git a/src/main/resources/application.properties b/src/main/resources/application.properties[m
+[1mnew file mode 100644[m
+[1mindex 0000000..28866c8[m
+[1m--- /dev/null[m
+[1m+++ b/src/main/resources/application.properties[m
+[36m@@ -0,0 +1,46 @@[m
+[32m+[m[32mspring.application.name=smartpark[m
+[32m+[m[32mserver.port=8080[m
+[32m+[m[32mserver.error.include-message=always[m
+[32m+[m
+[32m+[m
+[32m+[m
+[32m+[m[32m# Database Configuration (Update username and password for your local DB)[m
+[32m+[m[32mspring.datasource.url=jdbc:mysql://mysql:3306/smartpark_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true[m
+[32m+[m[32mspring.datasource.username=root[m
+[32m+[m[32mspring.datasource.password=Neetesh@2005[m
+[32m+[m[32mspring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver[m
+[32m+[m
+[32m+[m[32m# JPA/Hibernate Configuration[m
+[32m+[m[32mspring.jpa.hibernate.ddl-auto=update[m
+[32m+[m[32mspring.jpa.show-sql=true[m
+[32m+[m[32mspring.jpa.properties.hibernate.format_sql=true[m
+[32m+[m[32mspring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect[m
+[32m+[m
+[32m+[m[32m# JWT Configuration (Secret must be at least 256-bit / 32 characters long)[m
+[32m+[m[32mapplication.security.jwt.secret-key=404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970[m
+[32m+[m[32mapplication.security.jwt.expiration=86400000[m
+[32m+[m
+[32m+[m[32m# Redis Configuration[m
+[32m+[m[32mspring.data.redis.host=redis[m
+[32m+[m[32mspring.data.redis.port=6379[m
+[32m+[m
+[32m+[m
+[32m+[m[32m# Kafka Configuration[m
+[32m+[m[32mspring.kafka.bootstrap-servers=kafka:9092[m
+[32m+[m[32mspring.kafka.consumer.group-id=smartpark-notification-group[m
+[32m+[m[32mspring.kafka.consumer.auto-offset-reset=earliest[m
+[32m+[m[32m# Serialization settings (Convert Java Objects to JSON automatically)[m
+[32m+[m[32mspring.kafka.producer.key-serializer=org.apache.kafka.common.serialization.StringSerializer[m
+[32m+[m[32mspring.kafka.producer.value-serializer=org.springframework.kafka.support.serializer.JsonSerializer[m
+[32m+[m[32mspring.kafka.consumer.key-deserializer=org.apache.kafka.common.serialization.StringDeserializer[m
+[32m+[m[32mspring.kafka.consumer.value-deserializer=org.springframework.kafka.support.serializer.JsonDeserializer[m
+[32m+[m[32mspring.kafka.consumer.properties.spring.json.trusted.packages=*[m
+[32m+[m
+[32m+[m
+[32m+[m[32m# Email SMTP Configuration[m
+[32m+[m[32mspring.mail.host=smtp.gmail.com[m
+[32m+[m[32mspring.mail.port=587[m
+[32m+[m[32mspring.mail.username=neeteshsingh660@gmail.com[m
+[32m+[m[32mspring.mail.password=plpl pclc ursp aqic[m
+[32m+[m[32mspring.mail.properties.mail.smtp.auth=true[m
+[32m+[m[32mspring.mail.properties.mail.smtp.starttls.enable=true[m
+\ No newline at end of file[m
