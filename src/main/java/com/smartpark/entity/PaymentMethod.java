@@ -4,5 +4,7 @@ public enum PaymentMethod {
     CREDIT_CARD,
     DEBIT_CARD,
     UPI,
-    PAYPAL
+    PAYPAL,
+    WALLET,
+    RAZORPAY
 }

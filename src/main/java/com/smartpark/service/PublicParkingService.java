@@ -1,14 +1,19 @@
 package com.smartpark.service;
 
 import com.smartpark.dto.parking.PublicParkingSpotResponse;
+import com.smartpark.dto.parking.ReservedSlotResponse;
+import com.smartpark.entity.Booking;
+import com.smartpark.entity.BookingStatus;
 import com.smartpark.entity.ParkingSpot;
 import com.smartpark.entity.ParkingStatus;
 import com.smartpark.exception.ResourceNotFoundException;
+import com.smartpark.repository.BookingRepository;
 import com.smartpark.repository.ParkingSpotRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -18,6 +23,7 @@ import java.util.stream.Collectors;
 public class PublicParkingService {
 
     private final ParkingSpotRepository parkingSpotRepository;
+    private final BookingRepository bookingRepository;
     private static final double EARTH_RADIUS_KM = 6371.0;
 
     public List<PublicParkingSpotResponse> searchNearbyParking(
@@ -26,7 +32,6 @@ public class PublicParkingService {
             Boolean security, Boolean evCharging) {
 
         // 1. Calculate Bounding Box (Rough Square) to limit DB query size
-        // 1 degree of latitude is ~111 km
         double latDelta = radiusKm / 111.0;
         double lonDelta = radiusKm / (111.0 * Math.cos(Math.toRadians(lat)));
 
@@ -35,24 +40,37 @@ public class PublicParkingService {
         double minLon = lon - lonDelta;
         double maxLon = lon + lonDelta;
 
-        // 2. Fetch from DB using the Bounding Box (Fast execution)
+        // 2. Fetch from DB using the Bounding Box
         List<ParkingSpot> roughSpots = parkingSpotRepository
                 .findByStatusAndLatitudeBetweenAndLongitudeBetween(
                         ParkingStatus.AVAILABLE, minLat, maxLat, minLon, maxLon);
 
-        // 3. Apply precise Haversine formula (Circle) and dynamic filters
+        LocalDateTime now = LocalDateTime.now();
+        List<BookingStatus> activeStatuses = List.of(
+                BookingStatus.PENDING, BookingStatus.PAYMENT_PENDING,
+                BookingStatus.CONFIRMED, BookingStatus.ACTIVE
+        );
+
+        // 3. Apply Haversine distance, dynamic filters, and real-time spot capacity check
         return roughSpots.stream()
                 .filter(spot -> {
                     double exactDistance = calculateHaversineDistance(lat, lon, spot.getLatitude(), spot.getLongitude());
-                    spot.setLatitude(exactDistance); // Temporarily store distance, or handle in map
                     return exactDistance <= radiusKm;
                 })
                 .filter(spot -> maxPrice == null || spot.getPricePerHour().compareTo(maxPrice) <= 0)
                 .filter(spot -> covered == null || !covered || spot.isCovered())
                 .filter(spot -> security == null || !security || spot.isSecurityAvailable())
                 .filter(spot -> evCharging == null || !evCharging || spot.isEvChargingAvailable())
-                .map(spot -> mapToPublicResponse(spot, calculateHaversineDistance(lat, lon, spot.getLatitude(), spot.getLongitude())))
-                .sorted(Comparator.comparingDouble(PublicParkingSpotResponse::getDistanceKm)) // Sort by closest
+                .map(spot -> {
+                    double distance = calculateHaversineDistance(lat, lon, spot.getLatitude(), spot.getLongitude());
+                    long activeBookings = bookingRepository.countOverlappingBookings(
+                            spot.getId(), now, now.plusMinutes(1), activeStatuses);
+                    int totalCapacity = spot.getCapacity() != null ? spot.getCapacity() : 1;
+                    int available = Math.max(0, totalCapacity - (int) activeBookings);
+                    return mapToPublicResponse(spot, distance, available);
+                })
+                .filter(response -> response.getAvailableSpots() > 0) // Remove spots with 0 available spots
+                .sorted(Comparator.comparingDouble(PublicParkingSpotResponse::getDistanceKm))
                 .collect(Collectors.toList());
     }
 
@@ -65,7 +83,17 @@ public class PublicParkingService {
             distance = calculateHaversineDistance(userLat, userLon, spot.getLatitude(), spot.getLongitude());
         }
 
-        return mapToPublicResponse(spot, distance);
+        LocalDateTime now = LocalDateTime.now();
+        List<BookingStatus> activeStatuses = List.of(
+                BookingStatus.PENDING, BookingStatus.PAYMENT_PENDING,
+                BookingStatus.CONFIRMED, BookingStatus.ACTIVE
+        );
+        long activeBookings = bookingRepository.countOverlappingBookings(
+                spot.getId(), now, now.plusMinutes(1), activeStatuses);
+        int totalCapacity = spot.getCapacity() != null ? spot.getCapacity() : 1;
+        int available = Math.max(0, totalCapacity - (int) activeBookings);
+
+        return mapToPublicResponse(spot, distance, available);
     }
 
     // Haversine Formula for exact distance between two coordinates
@@ -81,7 +109,25 @@ public class PublicParkingService {
         return EARTH_RADIUS_KM * c;
     }
 
-    private PublicParkingSpotResponse mapToPublicResponse(ParkingSpot spot, double distanceKm) {
+    public List<ReservedSlotResponse> getSpotAvailability(Long spotId) {
+        List<BookingStatus> activeStatuses = List.of(
+                BookingStatus.PENDING, BookingStatus.PAYMENT_PENDING,
+                BookingStatus.CONFIRMED, BookingStatus.ACTIVE
+        );
+        LocalDateTime now = LocalDateTime.now();
+        List<Booking> upcomingBookings = bookingRepository
+                .findByParkingSpotIdAndStatusInAndEndTimeAfterOrderByStartTimeAsc(spotId, activeStatuses, now);
+
+        return upcomingBookings.stream()
+                .map(b -> ReservedSlotResponse.builder()
+                        .startTime(b.getStartTime())
+                        .endTime(b.getEndTime())
+                        .status(b.getStatus().name())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    private PublicParkingSpotResponse mapToPublicResponse(ParkingSpot spot, double distanceKm, int availableSpots) {
         return PublicParkingSpotResponse.builder()
                 .id(spot.getId())
                 .title(spot.getTitle())
@@ -91,10 +137,14 @@ public class PublicParkingService {
                 .longitude(spot.getLongitude())
                 .pricePerHour(spot.getPricePerHour())
                 .capacity(spot.getCapacity())
+                .availableSpots(availableSpots)
                 .covered(spot.isCovered())
                 .securityAvailable(spot.isSecurityAvailable())
                 .evChargingAvailable(spot.isEvChargingAvailable())
-                .distanceKm(Math.round(distanceKm * 10.0) / 10.0) // Round to 1 decimal place
+                .imageUrl(spot.getImageUrl())
+                .operatingHours(spot.getOperatingHours())
+                .peakPricePerHour(spot.getPeakPricePerHour())
+                .distanceKm(Math.round(distanceKm * 10.0) / 10.0)
                 .build();
     }
 }

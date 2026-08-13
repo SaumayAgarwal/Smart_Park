@@ -58,6 +58,13 @@ public class ParkingSpot {
 
     private boolean evChargingAvailable;
 
+    @Column(columnDefinition = "LONGTEXT")
+    private String imageUrl;
+
+    private String operatingHours;
+
+    private BigDecimal peakPricePerHour;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;

@@ -1,6 +1,5 @@
 package com.smartpark.dto.booking;
 
-import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -13,10 +12,11 @@ public class BookingRequest {
     private Long parkingSpotId;
 
     @NotNull(message = "Start time is required")
-    @Future(message = "Start time must be in the future")
     private LocalDateTime startTime;
 
     @NotNull(message = "End time is required")
-    @Future(message = "End time must be in the future")
     private LocalDateTime endTime;
+
+    private String vehicleNumber;
+    private String vehicleType;
 }

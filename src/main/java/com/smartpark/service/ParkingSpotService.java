@@ -39,6 +39,9 @@ public class ParkingSpotService {
                 .covered(request.isCovered())
                 .securityAvailable(request.isSecurityAvailable())
                 .evChargingAvailable(request.isEvChargingAvailable())
+                .imageUrl(request.getImageUrl())
+                .operatingHours(request.getOperatingHours())
+                .peakPricePerHour(request.getPeakPricePerHour())
                 .build();
 
         ParkingSpot savedSpot = parkingSpotRepository.save(spot);
@@ -83,6 +86,9 @@ public class ParkingSpotService {
         spot.setCovered(request.isCovered());
         spot.setSecurityAvailable(request.isSecurityAvailable());
         spot.setEvChargingAvailable(request.isEvChargingAvailable());
+        spot.setImageUrl(request.getImageUrl());
+        spot.setOperatingHours(request.getOperatingHours());
+        spot.setPeakPricePerHour(request.getPeakPricePerHour());
 
         ParkingSpot updatedSpot = parkingSpotRepository.save(spot);
         return mapToResponse(updatedSpot);
@@ -114,6 +120,9 @@ public class ParkingSpotService {
                 .covered(spot.isCovered())
                 .securityAvailable(spot.isSecurityAvailable())
                 .evChargingAvailable(spot.isEvChargingAvailable())
+                .imageUrl(spot.getImageUrl())
+                .operatingHours(spot.getOperatingHours())
+                .peakPricePerHour(spot.getPeakPricePerHour())
                 .createdAt(spot.getCreatedAt())
                 .build();
     }

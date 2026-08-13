@@ -16,9 +16,11 @@ public class BookingEventProducer {
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     public void sendBookingConfirmedEvent(BookingConfirmedEvent event) {
-        log.info("Producing BOOKING_CONFIRMED event for Booking ID: {}", event.getBookingId());
-
-        // Key is bookingId (ensures messages for the same booking go to the same partition)
-        kafkaTemplate.send(KafkaConfig.BOOKING_EVENTS_TOPIC, String.valueOf(event.getBookingId()), event);
+        try {
+            log.info("Producing BOOKING_CONFIRMED event for Booking ID: {}", event.getBookingId());
+            kafkaTemplate.send(KafkaConfig.BOOKING_EVENTS_TOPIC, String.valueOf(event.getBookingId()), event);
+        } catch (Exception e) {
+            log.warn("Kafka event publish skipped (offline): {}", e.getMessage());
+        }
     }
 }

@@ -16,7 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/bookings")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('DRIVER')") // Only DRIVER role can make/view these bookings
+@PreAuthorize("hasAnyRole('DRIVER', 'OWNER', 'ADMIN')") // Allow any logged-in user to make/view bookings
 public class BookingController {
 
     private final BookingService bookingService;
@@ -61,6 +61,33 @@ public class BookingController {
         return ResponseEntity.ok(ApiResponse.<BookingResponse>builder()
                 .success(true)
                 .message("Fetched booking details successfully")
+                .data(response)
+                .build());
+    }
+
+    @PostMapping("/{id}/extend")
+    public ResponseEntity<ApiResponse<BookingResponse>> requestExtension(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "1") Integer hours,
+            Principal principal) {
+
+        BookingResponse response = bookingService.requestExtension(id, hours, principal.getName());
+        return ResponseEntity.ok(ApiResponse.<BookingResponse>builder()
+                .success(true)
+                .message("Extension request submitted to space owner")
+                .data(response)
+                .build());
+    }
+
+    @PostMapping("/{id}/cancel")
+    public ResponseEntity<ApiResponse<BookingResponse>> cancelBooking(
+            @PathVariable Long id,
+            Principal principal) {
+
+        BookingResponse response = bookingService.cancelBooking(id, principal.getName());
+        return ResponseEntity.ok(ApiResponse.<BookingResponse>builder()
+                .success(true)
+                .message("Booking cancelled successfully")
                 .data(response)
                 .build());
     }

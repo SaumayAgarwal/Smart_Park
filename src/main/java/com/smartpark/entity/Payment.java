@@ -31,11 +31,11 @@ public class Payment {
     private String transactionId;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "payment_method", nullable = false, columnDefinition = "VARCHAR(50)")
     private PaymentMethod paymentMethod;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(50)")
     private PaymentStatus status;
 
     @CreationTimestamp

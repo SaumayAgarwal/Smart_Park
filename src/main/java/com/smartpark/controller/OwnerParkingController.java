@@ -3,6 +3,8 @@ package com.smartpark.controller;
 import com.smartpark.dto.ApiResponse;
 import com.smartpark.dto.parking.ParkingSpotRequest;
 import com.smartpark.dto.parking.ParkingSpotResponse;
+import com.smartpark.dto.booking.BookingResponse;
+import com.smartpark.service.BookingService;
 import com.smartpark.service.ParkingSpotService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,31 @@ import java.util.List;
 public class OwnerParkingController {
 
     private final ParkingSpotService parkingSpotService;
+    private final BookingService bookingService;
+
+    @GetMapping("/bookings")
+    public ResponseEntity<ApiResponse<List<BookingResponse>>> getOwnerBookings(Principal principal) {
+        List<BookingResponse> bookings = bookingService.getOwnerBookings(principal.getName());
+        return ResponseEntity.ok(ApiResponse.<List<BookingResponse>>builder()
+                .success(true)
+                .message("Fetched owner spot bookings successfully")
+                .data(bookings)
+                .build());
+    }
+
+    @PostMapping("/bookings/{id}/extension-response")
+    public ResponseEntity<ApiResponse<BookingResponse>> respondToExtension(
+            @PathVariable Long id,
+            @RequestParam boolean approve,
+            Principal principal) {
+
+        BookingResponse response = bookingService.respondToExtension(id, approve, principal.getName());
+        return ResponseEntity.ok(ApiResponse.<BookingResponse>builder()
+                .success(true)
+                .message(approve ? "Extension approved successfully" : "Extension declined")
+                .data(response)
+                .build());
+    }
 
     @PostMapping
     public ResponseEntity<ApiResponse<ParkingSpotResponse>> createSpot(

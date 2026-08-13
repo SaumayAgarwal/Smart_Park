@@ -2,8 +2,6 @@
 FROM maven:3.9.6-eclipse-temurin-21 AS builder
 WORKDIR /app
 COPY pom.xml .
-# Download dependencies first (caches them for faster subsequent builds)
-RUN mvn dependency:go-offline
 COPY src ./src
 # Build the jar, skipping tests to speed up the docker build
 RUN mvn clean package -DskipTests

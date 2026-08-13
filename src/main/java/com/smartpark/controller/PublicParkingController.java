@@ -2,6 +2,7 @@ package com.smartpark.controller;
 
 import com.smartpark.dto.ApiResponse;
 import com.smartpark.dto.parking.PublicParkingSpotResponse;
+import com.smartpark.dto.parking.ReservedSlotResponse;
 import com.smartpark.service.PublicParkingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -49,6 +50,16 @@ public class PublicParkingController {
                 .success(true)
                 .message("Fetched parking details successfully")
                 .data(response)
+                .build());
+    }
+
+    @GetMapping("/{id}/availability")
+    public ResponseEntity<ApiResponse<List<ReservedSlotResponse>>> getSpotAvailability(@PathVariable Long id) {
+        List<ReservedSlotResponse> reservedSlots = publicParkingService.getSpotAvailability(id);
+        return ResponseEntity.ok(ApiResponse.<List<ReservedSlotResponse>>builder()
+                .success(true)
+                .message("Fetched spot availability")
+                .data(reservedSlots)
                 .build());
     }
 }

@@ -23,5 +23,8 @@ public class ParkingSpotResponse {
     private boolean covered;
     private boolean securityAvailable;
     private boolean evChargingAvailable;
+    private String imageUrl;
+    private String operatingHours;
+    private BigDecimal peakPricePerHour;
     private LocalDateTime createdAt;
 }

@@ -20,9 +20,9 @@ public class ReviewController {
 
     private final ReviewService reviewService;
 
-    // Only Drivers can leave reviews
+    // Anyone who made a booking can leave a review
     @PostMapping("/booking/{bookingId}")
-    @PreAuthorize("hasRole('DRIVER')")
+    @PreAuthorize("hasAnyRole('DRIVER', 'OWNER', 'ADMIN')")
     public ResponseEntity<ApiResponse<ReviewResponse>> addReview(
             @PathVariable Long bookingId,
             @Valid @RequestBody ReviewRequest request,

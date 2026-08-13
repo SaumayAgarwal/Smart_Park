@@ -15,8 +15,12 @@ public class PublicParkingSpotResponse {
     private Double longitude;
     private BigDecimal pricePerHour;
     private Integer capacity;
+    private Integer availableSpots;
     private boolean covered;
     private boolean securityAvailable;
     private boolean evChargingAvailable;
+    private String imageUrl;
+    private String operatingHours;
+    private BigDecimal peakPricePerHour;
     private double distanceKm; // Distance from the user's search location
 }

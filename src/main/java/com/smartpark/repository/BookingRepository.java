@@ -15,6 +15,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findByUserIdOrderByCreatedAtDesc(Long userId);
 
+    List<Booking> findByParkingSpotOwnerIdOrderByCreatedAtDesc(Long ownerId);
+
     Optional<Booking> findByIdAndUserId(Long id, Long userId);
 
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.parkingSpot.id = :spotId " +
@@ -26,6 +28,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("newEnd") LocalDateTime newEnd,
             @Param("statuses") List<BookingStatus> statuses
     );
+
+    List<Booking> findByParkingSpotIdAndStatusInAndEndTimeAfterOrderByStartTimeAsc(
+            Long spotId, List<BookingStatus> statuses, LocalDateTime now);
 
     // NEW METHODS FOR ADMIN ANALYTICS
     long countByStatus(BookingStatus status);

@@ -5,7 +5,7 @@ services:
     container_name: smartpark-mysql
     restart: unless-stopped
     ports:
-      - "3306:3306"
+      - "3307:3306"
     environment:
       MYSQL_DATABASE: smartpark_db
       MYSQL_ROOT_PASSWORD: Neetesh@2005 # Match your local password
@@ -53,6 +53,7 @@ services:
       - "8080:8080"
     environment:
       - DB_HOST=mysql
+      - DB_PORT=3306
       - REDIS_HOST=redis
       - KAFKA_HOST=kafka:9092
     depends_on:
@@ -63,5 +64,17 @@ services:
       kafka:
         condition: service_started
 
+  # 5. React Frontend (Vite build → Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: smartpark-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
 volumes:
-  mysql_data:
+  mysql_data:

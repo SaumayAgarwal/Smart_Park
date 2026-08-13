@@ -21,11 +21,11 @@ public class Booking {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "parking_spot_id", nullable = false)
     private ParkingSpot parkingSpot;
 
@@ -47,6 +47,11 @@ public class Booking {
 
     @Column(unique = true)
     private String qrCode; // Will be populated after payment
+
+    private String vehicleNumber;
+    private String vehicleType;
+    private Integer extensionHours;
+    private BigDecimal cancellationFee;
 
     @CreationTimestamp
     @Column(updatable = false)
