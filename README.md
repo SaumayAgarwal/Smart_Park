@@ -330,12 +330,6 @@ SmartPark/
 
 ---
 
-## 👨‍💻 Author
-
-**Neetesh Singh**  
-GitHub: [@Neeteshsingh660](https://github.com/Neeteshsingh660)
-
----
 
 ## 📄 License
 
