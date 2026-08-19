@@ -7,8 +7,8 @@ services:
     ports:
       - "3307:3306"
     environment:
-      MYSQL_DATABASE: smartpark_db
-      MYSQL_ROOT_PASSWORD: Neetesh@2005 # Match your local password
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-smartpark_db}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -54,16 +54,16 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - DATABASE_URL=mysql://root:Neetesh@2005@mysql:3306/smartpark_db
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - KAFKA_BROKER=kafka:9092
-      - JWT_SECRET=404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
-      - MAIL_USERNAME=neeteshsingh660@gmail.com
-      - MAIL_PASSWORD=plpl pclc ursp aqic
-      - RAZORPAY_KEY_ID=rzp_test_TPAcsJkyv1j89b
-      - RAZORPAY_KEY_SECRET=NCDcCtWMATbG5qEcoa8cK21k
-      - FAST2SMS_API_KEY=ZJnWtLPfuDp9bsYF071QIjhm2iOSHVl4BcqXMCoxzKArTa8weNiQOv9nEgdubXmRFr0wGIM7K6yVS4te
+      - DATABASE_URL=${DATABASE_URL:-mysql://root:rootpassword@mysql:3306/smartpark_db}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - KAFKA_BROKER=${KAFKA_BROKER:-kafka:9092}
+      - JWT_SECRET=${JWT_SECRET:-smartpark_default_jwt_secret_key_change_in_prod}
+      - MAIL_USERNAME=${MAIL_USERNAME:-}
+      - MAIL_PASSWORD=${MAIL_PASSWORD:-}
+      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID:-}
+      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET:-}
+      - FAST2SMS_API_KEY=${FAST2SMS_API_KEY:-}
     depends_on:
       mysql:
         condition: service_healthy
