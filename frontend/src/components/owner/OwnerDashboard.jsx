@@ -28,19 +28,37 @@ export const OwnerDashboard = () => {
   };
 
   const now = new Date();
-  const ownerUpcomingCount = ownerBookings.filter(b => b.status !== 'CANCELLED' && b.status !== 'EXPIRED' && b.status !== 'COMPLETED' && (!b.endTime || parseLocalDateTime(b.endTime) >= now)).length;
-  const ownerPastCount = ownerBookings.filter(b => b.status === 'COMPLETED' || (b.endTime && parseLocalDateTime(b.endTime) < now && b.status !== 'CANCELLED' && b.status !== 'EXPIRED')).length;
+  const pendingExtensions = ownerBookings.filter(b => b.status === 'EXTENSION_REQUESTED');
+
+  const ownerUpcomingCount = ownerBookings.filter(b => {
+    if (b.status === 'EXTENSION_REQUESTED') return true;
+    if (b.status === 'CANCELLED' || b.status === 'EXPIRED' || b.status === 'COMPLETED') return false;
+    return !b.endTime || parseLocalDateTime(b.endTime) >= now;
+  }).length;
+
+  const ownerPastCount = ownerBookings.filter(b => {
+    if (b.status === 'EXTENSION_REQUESTED' || b.status === 'CANCELLED' || b.status === 'EXPIRED') return false;
+    return b.status === 'COMPLETED' || (b.endTime && parseLocalDateTime(b.endTime) < now);
+  }).length;
+
   const ownerCancelledCount = ownerBookings.filter(b => b.status === 'CANCELLED' || b.status === 'EXPIRED').length;
 
   const filteredOwnerBookings = ownerBookings.filter(b => {
+    const isExtension = b.status === 'EXTENSION_REQUESTED';
     const isCancelled = b.status === 'CANCELLED' || b.status === 'EXPIRED';
     const isCompleted = b.status === 'COMPLETED';
-    const isPast = isCompleted || (b.endTime && parseLocalDateTime(b.endTime) < now);
+    const isPast = !isExtension && !isCancelled && (isCompleted || (b.endTime && parseLocalDateTime(b.endTime) < now));
 
-    if (bookingFilterTab === 'upcoming') return !isCancelled && !isPast;
-    if (bookingFilterTab === 'past') return isPast && !isCancelled;
+    if (bookingFilterTab === 'extensions') return isExtension;
+    if (bookingFilterTab === 'upcoming') return isExtension || (!isCancelled && !isPast);
+    if (bookingFilterTab === 'past') return isPast && !isCancelled && !isExtension;
     if (bookingFilterTab === 'cancelled') return isCancelled;
     return true; // 'all'
+  }).sort((a, b) => {
+    // Pin EXTENSION_REQUESTED to the very top
+    if (a.status === 'EXTENSION_REQUESTED' && b.status !== 'EXTENSION_REQUESTED') return -1;
+    if (b.status === 'EXTENSION_REQUESTED' && a.status !== 'EXTENSION_REQUESTED') return 1;
+    return 0;
   });
 
   const [isSpotFormOpen, setIsSpotFormOpen] = useState(false);
@@ -57,8 +75,8 @@ export const OwnerDashboard = () => {
   // Extension response loading
   const [respondingTo, setRespondingTo] = useState(null);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       const [spotsRes, bookingsRes] = await Promise.all([
         parkingService.getMySpots().catch(() => ({ success: true, data: [] })),
@@ -74,11 +92,18 @@ export const OwnerDashboard = () => {
     } catch (err) {
       console.warn('Dashboard fetch error:', err.message);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData(false);
+    // Silent auto-poll for new bookings and extension requests every 6 seconds
+    const interval = setInterval(() => {
+      fetchData(true);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleDeleteSpot = async (id) => {
     if (!window.confirm('Are you sure you want to delete this parking spot listing?')) return;
@@ -94,39 +119,13 @@ export const OwnerDashboard = () => {
   const handleExtensionResponse = async (bookingId, approve) => {
     setRespondingTo(bookingId);
     try {
-      if (bookingId >= 800) {
-        // Local state update for demo bookings
-        setOwnerBookings(prev => prev.map(b => {
-          if (b.id === bookingId) {
-            const extraHours = b.extensionHours || 1;
-            const newEnd = new Date(new Date(b.endTime).getTime() + extraHours * 3600000).toISOString();
-            return {
-              ...b,
-              status: 'CONFIRMED',
-              endTime: approve ? newEnd : b.endTime,
-              amount: approve ? (b.amount + 40 * extraHours) : b.amount,
-              extensionHours: null
-            };
-          }
-          return b;
-        }));
+      const res = await bookingService.respondToExtension(bookingId, approve);
+      if (res.success) {
         addToast(approve ? '✅ Extension approved! Driver notified.' : '❌ Extension declined. Driver notified.', approve ? 'success' : 'info');
-      } else {
-        const res = await bookingService.respondToExtension(bookingId, approve);
-        if (res.success) {
-          addToast(approve ? '✅ Extension approved! Driver notified.' : '❌ Extension declined. Driver notified.', approve ? 'success' : 'info');
-          fetchData();
-        }
+        fetchData();
       }
     } catch (err) {
-      // Fallback for mock environment if backend endpoint is restarting
-      setOwnerBookings(prev => prev.map(b => {
-        if (b.id === bookingId) {
-          return { ...b, status: 'CONFIRMED', extensionHours: null };
-        }
-        return b;
-      }));
-      addToast(approve ? '✅ Extension approved! Driver notified.' : '❌ Extension declined. Driver notified.', approve ? 'success' : 'info');
+      addToast(err.message || 'Failed to respond to extension. Please try again.', 'error');
     } finally {
       setRespondingTo(null);
     }
@@ -160,7 +159,6 @@ export const OwnerDashboard = () => {
     }
     return acc;
   }, 0);
-  const pendingExtensions = ownerBookings.filter(b => b.status === 'EXTENSION_REQUESTED');
 
   return (
     <div className="container owner-dashboard-container">
@@ -191,7 +189,7 @@ export const OwnerDashboard = () => {
             <strong>{pendingExtensions.length} Driver Extension Request{pendingExtensions.length > 1 ? 's' : ''} Pending Approval</strong>
             <p>Review and approve or decline below in the Bookings tab.</p>
           </div>
-          <button className="btn btn-primary btn-sm" onClick={() => setActiveTab('bookings')}>
+          <button className="btn btn-primary btn-sm" onClick={() => { setActiveTab('bookings'); setBookingFilterTab('extensions'); }}>
             Review Now →
           </button>
         </div>
@@ -236,35 +234,37 @@ export const OwnerDashboard = () => {
       {/* TAB: SPOTS */}
       {activeTab === 'spots' && (
         spots.length === 0 ? (
-          <EmptyState icon={Building2} title="No Parking Spaces Listed Yet"
-            description="Monetize your empty garage or driveway."
-            actionLabel="List Your Space Now"
+          <EmptyState
+            icon={Warehouse}
+            title="No Parking Spaces Listed Yet"
+            description="Start earning by listing your empty garage, driveway, or commercial parking lot."
+            actionLabel="List Your First Space"
             onAction={() => { setEditingSpot(null); setIsSpotFormOpen(true); }}
           />
         ) : (
           <div className="owner-spots-grid">
-            {spots.map(spot => (
+            {spots.map((spot) => (
               <div key={spot.id} className="owner-spot-card card">
                 {spot.imageUrl && (
                   <div className="spot-card-image">
-                    <img src={spot.imageUrl} alt={spot.title} onError={e => e.target.style.display = 'none'} />
+                    <img src={spot.imageUrl} alt={spot.title} onError={(e) => e.target.style.display='none'} />
                   </div>
                 )}
                 <div className="spot-card-top">
                   <div>
-                    <h4 className="spot-title-text">{spot.title}</h4>
-                    <p className="spot-address-text">{spot.address}{spot.city ? `, ${spot.city}` : ''}</p>
-                    {spot.operatingHours && <p className="spot-hours-text">🕐 {spot.operatingHours}</p>}
+                    <h3 className="spot-title-text">{spot.title}</h3>
+                    <p className="spot-address-text">{spot.address || spot.city}</p>
+                    {spot.operatingHours && <p className="spot-hours-text">⏰ {spot.operatingHours}</p>}
                   </div>
                   <div className="price-col">
-                    <span className="badge badge-teal">₹{spot.pricePerHour}/hr</span>
-                    {spot.peakPricePerHour && <span className="peak-rate-tag">🔥 Peak ₹{spot.peakPricePerHour}/hr</span>}
+                    <div className="spot-price-tag">₹{spot.pricePerHour}<span className="unit">/hr</span></div>
+                    {spot.peakPricePerHour && <span className="peak-rate-tag">Peak: ₹{spot.peakPricePerHour}/hr</span>}
                   </div>
                 </div>
 
                 <div className="amenity-badges-row">
-                  {(spot.covered || spot.isCovered) && <span className="badge badge-amber"><Warehouse size={12} /> Covered</span>}
-                  {(spot.securityAvailable || spot.hasSecurity) && <span className="badge badge-emerald"><Shield size={12} /> Security</span>}
+                  {(spot.covered || spot.isCovered) && <span className="badge badge-teal"><Warehouse size={12} /> Covered</span>}
+                  {(spot.securityAvailable || spot.hasSecurity) && <span className="badge badge-teal"><Shield size={12} /> Security</span>}
                   {(spot.evChargingAvailable || spot.hasEvCharging) && <span className="badge badge-teal"><Zap size={12} /> EV</span>}
                 </div>
 
@@ -296,6 +296,15 @@ export const OwnerDashboard = () => {
             >
               Upcoming ({ownerUpcomingCount})
             </button>
+            {pendingExtensions.length > 0 && (
+              <button
+                className={`filter-tab-btn ${bookingFilterTab === 'extensions' ? 'active' : ''}`}
+                style={{ background: bookingFilterTab === 'extensions' ? '#f59e0b' : '#fef3c7', color: bookingFilterTab === 'extensions' ? '#fff' : '#92400e', borderColor: '#f59e0b', fontWeight: 700 }}
+                onClick={() => setBookingFilterTab('extensions')}
+              >
+                ⚡ Extensions Pending ({pendingExtensions.length})
+              </button>
+            )}
             <button
               className={`filter-tab-btn ${bookingFilterTab === 'past' ? 'active' : ''}`}
               onClick={() => setBookingFilterTab('past')}
@@ -317,8 +326,8 @@ export const OwnerDashboard = () => {
           </div>
 
           {filteredOwnerBookings.length === 0 ? (
-            <EmptyState icon={Users} title={`No ${bookingFilterTab === 'upcoming' ? 'Upcoming' : bookingFilterTab === 'past' ? 'Past' : bookingFilterTab === 'cancelled' ? 'Cancelled' : ''} Bookings`}
-              description="No driver bookings found in this category."
+            <EmptyState icon={Users} title={`No ${bookingFilterTab === 'extensions' ? 'Pending Extension' : bookingFilterTab === 'upcoming' ? 'Upcoming' : bookingFilterTab === 'past' ? 'Past' : bookingFilterTab === 'cancelled' ? 'Cancelled' : ''} Bookings`}
+              description={bookingFilterTab === 'extensions' ? "There are no pending driver extension requests right now." : "No driver bookings found in this category."}
             />
           ) : (
             <div className="bookers-list-grid">

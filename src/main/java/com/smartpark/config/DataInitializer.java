@@ -13,17 +13,32 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import com.smartpark.entity.ParkingStatus;
 
+import org.springframework.jdbc.core.JdbcTemplate;
+import lombok.extern.slf4j.Slf4j;
+
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class DataInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final ParkingSpotRepository parkingSpotRepository;
     private final BookingRepository bookingRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(String... args) {
+        // Safe database migration for MySQL columns
+        try {
+            jdbcTemplate.execute("ALTER TABLE bookings MODIFY COLUMN status VARCHAR(50)");
+            jdbcTemplate.execute("ALTER TABLE payments MODIFY COLUMN payment_method VARCHAR(50)");
+            jdbcTemplate.execute("ALTER TABLE payments MODIFY COLUMN status VARCHAR(50)");
+            log.info("Successfully ensured VARCHAR(50) status/method columns on bookings and payments tables.");
+        } catch (Exception e) {
+            log.warn("Column migration notice: {}", e.getMessage());
+        }
+
         if (userRepository.count() > 0) {
             return;
         }

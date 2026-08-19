@@ -39,7 +39,7 @@ public class Booking {
     private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "VARCHAR(50)")
     private BookingStatus status;
 
     @Column(nullable = false, unique = true)

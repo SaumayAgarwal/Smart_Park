@@ -41,8 +41,8 @@ export const MyBookings = () => {
   // Cancel state
   const [cancellingId, setCancellingId] = useState(null);
 
-  const fetchBookings = async () => {
-    setLoading(true);
+  const fetchBookings = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       const res = await bookingService.getMyBookings();
       if (res && res.success) {
@@ -50,9 +50,9 @@ export const MyBookings = () => {
       }
     } catch (err) {
       console.warn('Failed to fetch bookings:', err.message);
-      setBookings([]);
+      if (!isBackground) setBookings([]);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
@@ -68,8 +68,13 @@ export const MyBookings = () => {
   };
 
   useEffect(() => {
-    fetchBookings();
+    fetchBookings(false);
     fetchWalletBalance();
+    const interval = setInterval(() => {
+      fetchBookings(true);
+      fetchWalletBalance();
+    }, 6000);
+    return () => clearInterval(interval);
   }, []);
 
   // Review submit
@@ -96,22 +101,14 @@ export const MyBookings = () => {
     if (!extendingBookingId) return;
     setSubmittingExtension(true);
     try {
-      if (extendingBookingId >= 500) {
-        setBookings(prev => prev.map(b => b.id === extendingBookingId ? { ...b, status: 'EXTENSION_REQUESTED', extensionHours } : b));
+      const res = await bookingService.requestExtension(extendingBookingId, extensionHours);
+      if (res.success) {
         addToast(`Extension request for +${extensionHours}h sent to space owner! Awaiting approval.`, 'success');
         setExtendingBookingId(null);
-      } else {
-        const res = await bookingService.requestExtension(extendingBookingId, extensionHours);
-        if (res.success) {
-          addToast(`Extension request for +${extensionHours}h sent to space owner! Awaiting approval.`, 'success');
-          setExtendingBookingId(null);
-          fetchBookings();
-        }
+        fetchBookings();
       }
     } catch (err) {
-      setBookings(prev => prev.map(b => b.id === extendingBookingId ? { ...b, status: 'EXTENSION_REQUESTED', extensionHours } : b));
-      addToast(`Extension request for +${extensionHours}h sent to space owner! Awaiting approval.`, 'success');
-      setExtendingBookingId(null);
+      addToast(err.message || 'Failed to send extension request. Please try again.', 'error');
     } finally {
       setSubmittingExtension(false);
     }
@@ -169,17 +166,27 @@ export const MyBookings = () => {
   const [filterTab, setFilterTab] = useState('upcoming');
 
   const now = new Date();
-  const upcomingCount = bookings.filter(b => b.status !== 'CANCELLED' && b.status !== 'EXPIRED' && b.status !== 'COMPLETED' && (!b.endTime || parseLocalDateTime(b.endTime) >= now)).length;
-  const pastCount = bookings.filter(b => b.status === 'COMPLETED' || (b.endTime && parseLocalDateTime(b.endTime) < now && b.status !== 'CANCELLED' && b.status !== 'EXPIRED')).length;
+  const upcomingCount = bookings.filter(b => {
+    if (b.status === 'EXTENSION_REQUESTED') return true;
+    if (b.status === 'CANCELLED' || b.status === 'EXPIRED' || b.status === 'COMPLETED') return false;
+    return !b.endTime || parseLocalDateTime(b.endTime) >= now;
+  }).length;
+
+  const pastCount = bookings.filter(b => {
+    if (b.status === 'EXTENSION_REQUESTED' || b.status === 'CANCELLED' || b.status === 'EXPIRED') return false;
+    return b.status === 'COMPLETED' || (b.endTime && parseLocalDateTime(b.endTime) < now);
+  }).length;
+
   const cancelledCount = bookings.filter(b => b.status === 'CANCELLED' || b.status === 'EXPIRED').length;
 
   const filteredBookings = bookings.filter(b => {
+    const isExtension = b.status === 'EXTENSION_REQUESTED';
     const isCancelled = b.status === 'CANCELLED' || b.status === 'EXPIRED';
     const isCompleted = b.status === 'COMPLETED';
-    const isPast = isCompleted || (b.endTime && parseLocalDateTime(b.endTime) < now);
+    const isPast = !isExtension && !isCancelled && (isCompleted || (b.endTime && parseLocalDateTime(b.endTime) < now));
 
-    if (filterTab === 'upcoming') return !isCancelled && !isPast;
-    if (filterTab === 'past') return isPast && !isCancelled;
+    if (filterTab === 'upcoming') return isExtension || (!isCancelled && !isPast);
+    if (filterTab === 'past') return isPast && !isCancelled && !isExtension;
     if (filterTab === 'cancelled') return isCancelled;
     return true; // 'all'
   });
