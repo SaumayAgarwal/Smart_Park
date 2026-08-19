@@ -23,7 +23,7 @@ export const HowItWorks = ({ onNavigate, onOpenAuth }) => {
             <div className="step-number">02</div>
             <h3 className="step-title">Book & Pay</h3>
             <p className="step-description">
-              Select your time slot — our system instantly holds your spot for 5 minutes while you complete a secure payment.
+              Select your time slot — your slot is reserved instantly and held while you complete a secure payment.
             </p>
             <button className="step-link" onClick={() => onNavigate('pricing')}>
               See Pricing <ChevronRight size={16} />

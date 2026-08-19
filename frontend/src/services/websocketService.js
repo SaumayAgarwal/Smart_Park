@@ -1,58 +1,62 @@
-import { Client } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
+import { io } from 'socket.io-client';
 
 class WebSocketService {
   constructor() {
-    this.client = null;
-    this.subscriptions = {};
+    this.socket = null;
+    this.callbacks = new Map();
   }
 
-  connect(onMessageCallback) {
-    if (this.client && this.client.connected) return;
+  connect(onConnectCallback) {
+    if (this.socket && this.socket.connected) return;
 
-    this.client = new Client({
-      webSocketFactory: () => new SockJS('/ws'),
-      reconnectDelay: 5000,
-      debug: (str) => {
-        // Uncomment for dev debugging
-        // console.log('[STOMP]', str);
-      },
-      onConnect: () => {
-        console.log('STOMP WebSocket connected successfully');
-        if (onMessageCallback) onMessageCallback({ type: 'CONNECTED' });
-      },
-      onStompError: (frame) => {
-        console.error('STOMP Error:', frame.headers['message']);
-      },
+    this.socket = io({
+      path: '/socket.io',
+      transports: ['websocket', 'polling'],
+      reconnectionDelay: 3000,
     });
 
-    this.client.activate();
+    this.socket.on('connect', () => {
+      console.log('Socket.IO connected successfully');
+      if (onConnectCallback) onConnectCallback({ type: 'CONNECTED' });
+    });
+
+    this.socket.on('connect_error', (err) => {
+      console.warn('Socket.IO connection warning:', err.message);
+    });
+
+    // Listen to incoming notifications
+    const events = ['NEW_BOOKING', 'BOOKING_SUCCESS', 'EXTENSION_REQUESTED', 'EXTENSION_APPROVED', 'EXTENSION_DECLINED'];
+    events.forEach((evt) => {
+      this.socket.on(evt, (data) => {
+        const cb = this.callbacks.get(evt) || this.callbacks.get('ALL');
+        if (cb) cb(data);
+      });
+    });
   }
 
   subscribeUser(role, email, callback) {
-    if (!this.client || !this.client.connected) {
-      setTimeout(() => this.subscribeUser(role, email, callback), 1000);
-      return;
+    if (!this.socket) {
+      this.connect();
     }
 
-    const topic = role === 'OWNER' ? `/topic/owner/${email}` : `/topic/driver/${email}`;
-    if (this.subscriptions[topic]) return;
-
-    console.log(`Subscribing to topic: ${topic}`);
-    this.subscriptions[topic] = this.client.subscribe(topic, (message) => {
-      try {
-        const body = JSON.parse(message.body);
-        callback(body);
-      } catch (err) {
-        console.error('Failed to parse WebSocket message', err);
+    if (this.socket) {
+      if (this.socket.connected) {
+        this.socket.emit('join', { role, email });
+      } else {
+        this.socket.once('connect', () => {
+          this.socket.emit('join', { role, email });
+        });
       }
-    });
+    }
+
+    this.callbacks.set('ALL', callback);
   }
 
   disconnect() {
-    if (this.client) {
-      this.client.deactivate();
-      this.subscriptions = {};
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+      this.callbacks.clear();
     }
   }
 }

@@ -20,11 +20,7 @@ export const OwnerDashboard = () => {
 
   const parseLocalDateTime = (dtStr) => {
     if (!dtStr) return null;
-    const [datePart, timePart] = dtStr.split('T');
-    if (!datePart || !timePart) return new Date(dtStr);
-    const [year, month, day] = datePart.split('-').map(Number);
-    const [hours, minutes] = timePart.split(':').map(Number);
-    return new Date(year, month - 1, day, hours, minutes);
+    return new Date(dtStr);
   };
 
   const now = new Date();
@@ -384,8 +380,8 @@ export const OwnerDashboard = () => {
                 </div>
 
                 <div className="booking-dates-box">
-                  <div className="date-item"><Calendar size={14} /> {new Date(b.startTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</div>
-                  <div className="date-item"><Clock size={14} /> {new Date(b.endTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</div>
+                  <div className="date-item"><Calendar size={14} /> Start: {b.startTime ? new Date(b.startTime).toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : 'N/A'}</div>
+                  <div className="date-item"><Clock size={14} /> End: {b.endTime ? new Date(b.endTime).toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : 'N/A'}</div>
                 </div>
 
                 <div className="booker-card-footer">

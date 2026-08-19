@@ -17,6 +17,16 @@ const saveVehicle = (v) => {
   }
 };
 
+const toDateTimeLocalString = (date) => {
+  const pad = (n) => String(n).padStart(2, '0');
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
 export const BookingModal = ({ isOpen, onClose, spot, onBookingCreated }) => {
   const { isAuthenticated } = useAuth();
   const { addToast } = useToast();
@@ -34,12 +44,10 @@ export const BookingModal = ({ isOpen, onClose, spot, onBookingCreated }) => {
     if (isOpen && spot?.id) {
       const now = new Date();
       now.setMinutes(now.getMinutes() + 15);
-      const startIso = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-      const end = new Date(now);
-      end.setHours(end.getHours() + 2);
-      const endIso = new Date(end.getTime() - end.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-      setStartTime(startIso);
-      setEndTime(endIso);
+      const end = new Date(now.getTime() + 2 * 3600000);
+
+      setStartTime(toDateTimeLocalString(now));
+      setEndTime(toDateTimeLocalString(end));
       setSavedVehicles(getSavedVehicles());
 
       // Fetch availability
@@ -92,20 +100,36 @@ export const BookingModal = ({ isOpen, onClose, spot, onBookingCreated }) => {
       return;
     }
 
+    // Client-side overlap check against already reserved slots
+    const selectedStart = new Date(startTime);
+    const selectedEnd = new Date(endTime);
+    const hasOverlap = reservedSlots.some((slot) => {
+      const sStart = new Date(slot.startTime);
+      const sEnd = new Date(slot.endTime);
+      return selectedStart < sEnd && selectedEnd > sStart;
+    });
+    if (hasOverlap) {
+      addToast('This time slot overlaps with an existing booking. Please choose a different time.', 'error');
+      return;
+    }
+
     setLoading(true);
     try {
-      // Send as local datetime string (no UTC conversion) to match what user selected
+      // Convert browser local time to UTC ISO string so timezone is accurately preserved
+      const startIso = new Date(startTime).toISOString();
+      const endIso = new Date(endTime).toISOString();
+
       const res = await bookingService.createBooking({
         parkingSpotId: spot.id,
-        startTime: startTime,
-        endTime: endTime,
+        startTime: startIso,
+        endTime: endIso,
         vehicleNumber: vehicleNumber.trim() || null,
         vehicleType: vehicleType || null,
       });
 
       if (res.success && res.data) {
         if (vehicleNumber.trim()) saveVehicle({ vehicleNumber: vehicleNumber.trim(), vehicleType });
-        addToast('Spot held for 5 minutes! Complete payment to confirm.', 'success');
+        addToast('Slot reserved! Complete payment to confirm your booking.', 'success');
         onBookingCreated(res.data);
       }
     } catch (err) {
@@ -165,7 +189,9 @@ export const BookingModal = ({ isOpen, onClose, spot, onBookingCreated }) => {
             <div className="input-icon-wrapper">
               <Calendar className="field-icon" size={18} />
               <input type="datetime-local" required value={startTime}
-                onChange={(e) => setStartTime(e.target.value)} className="input-field-with-icon" />
+                onChange={(e) => setStartTime(e.target.value)}
+                className="input-field-with-icon"
+                style={startTime && endTime && reservedSlots.some(s => new Date(startTime) < new Date(s.endTime) && new Date(endTime) > new Date(s.startTime)) ? { borderColor: '#ef4444' } : {}} />
             </div>
           </div>
 
@@ -174,8 +200,15 @@ export const BookingModal = ({ isOpen, onClose, spot, onBookingCreated }) => {
             <div className="input-icon-wrapper">
               <Clock className="field-icon" size={18} />
               <input type="datetime-local" required value={endTime}
-                onChange={(e) => setEndTime(e.target.value)} className="input-field-with-icon" />
+                onChange={(e) => setEndTime(e.target.value)}
+                className="input-field-with-icon"
+                style={startTime && endTime && reservedSlots.some(s => new Date(startTime) < new Date(s.endTime) && new Date(endTime) > new Date(s.startTime)) ? { borderColor: '#ef4444' } : {}} />
             </div>
+            {startTime && endTime && reservedSlots.some(s => new Date(startTime) < new Date(s.endTime) && new Date(endTime) > new Date(s.startTime)) && (
+              <p style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.3rem' }}>
+                ⚠️ This time overlaps with an existing booking. Please pick a different slot.
+              </p>
+            )}
           </div>
 
           {/* Vehicle Profile Section */}
@@ -237,7 +270,7 @@ export const BookingModal = ({ isOpen, onClose, spot, onBookingCreated }) => {
 
           <div className="redis-hold-notice">
             <Lock size={16} className="text-teal-600" />
-            <span>Upon clicking, Redis will hold this spot exclusively for 5 minutes.</span>
+            <span>Your slot is reserved instantly. Complete payment to confirm your booking.</span>
           </div>
 
           <button type="submit" className="btn btn-primary btn-lg w-full" disabled={loading}>

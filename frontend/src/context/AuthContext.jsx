@@ -78,8 +78,8 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const sendOtp = async (email) => {
-    const res = await authService.sendOtp(email);
+  const sendOtp = async (email, phone = null) => {
+    const res = await authService.sendOtp(email, phone);
     addToast(res.message || `OTP sent to ${email}`, 'info');
     return res;
   };

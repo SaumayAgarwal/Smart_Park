@@ -114,14 +114,10 @@ export const MyBookings = () => {
     }
   };
 
-  // Helper to parse 'YYYY-MM-DDTHH:mm' into local Date cleanly
+  // Helper to parse datetime into local Date cleanly
   const parseLocalDateTime = (dtStr) => {
     if (!dtStr) return null;
-    const [datePart, timePart] = dtStr.split('T');
-    if (!datePart || !timePart) return new Date(dtStr);
-    const [year, month, day] = datePart.split('-').map(Number);
-    const [hours, minutes] = timePart.split(':').map(Number);
-    return new Date(year, month - 1, day, hours, minutes);
+    return new Date(dtStr);
   };
 
   // Cancel booking with refund notice
@@ -287,11 +283,11 @@ export const MyBookings = () => {
                 <div className="booking-details-grid">
                   <div className="detail-item">
                     <Calendar size={14} className="text-teal-600" />
-                    <span>Start: {new Date(b.startTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
+                    <span>Start: {b.startTime ? new Date(b.startTime).toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : 'N/A'}</span>
                   </div>
                   <div className="detail-item">
                     <Clock size={14} className="text-teal-600" />
-                    <span>End: {new Date(b.endTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
+                    <span>End: {b.endTime ? new Date(b.endTime).toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : 'N/A'}</span>
                   </div>
                   {b.vehicleNumber && (
                     <div className="detail-item">

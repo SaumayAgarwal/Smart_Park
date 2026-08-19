@@ -38,7 +38,8 @@ export const RegisterForm = ({ initialRole = 'DRIVER', onSuccess, onSwitchToLogi
     }
     setSendingOtp(true);
     try {
-      await sendOtp(email);
+      const cleanPhone = phone ? phone.replace(/\D/g, '').slice(-10) : null;
+      await sendOtp(email, cleanPhone && cleanPhone.length === 10 ? cleanPhone : null);
       setOtpSent(true);
     } catch (err) {
       addToast(err.message || 'Failed to send OTP', 'error');
@@ -60,12 +61,14 @@ export const RegisterForm = ({ initialRole = 'DRIVER', onSuccess, onSwitchToLogi
       return;
     }
 
+    const cleanPhone = phone ? phone.replace(/\D/g, '').slice(-10) : null;
+
     setLoading(true);
     try {
       await register({
         name,
         email,
-        phone,
+        phone: cleanPhone && cleanPhone.length === 10 ? cleanPhone : null,
         password,
         role,
         otp,
@@ -126,6 +129,22 @@ export const RegisterForm = ({ initialRole = 'DRIVER', onSuccess, onSwitchToLogi
         </div>
       </div>
 
+      {/* Phone Number Input — must be filled BEFORE clicking Send OTP */}
+      <div className="input-group">
+        <label className="input-label">Mobile Number <span style={{ color: '#64748b', fontSize: '0.78rem', fontWeight: 400 }}>(Optional — for SMS alerts)</span></label>
+        <div className="input-icon-wrapper">
+          <Phone className="field-icon" size={18} />
+          <input
+            type="tel"
+            placeholder="9876543210"
+            maxLength={10}
+            value={phone}
+            onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+            className="input-field-with-icon"
+          />
+        </div>
+      </div>
+
       {/* Email + Send OTP Button */}
       <div className="input-group">
         <label className="input-label">Email Address</label>
@@ -164,21 +183,6 @@ export const RegisterForm = ({ initialRole = 'DRIVER', onSuccess, onSwitchToLogi
             placeholder="Enter 6-digit OTP"
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
-            className="input-field-with-icon"
-          />
-        </div>
-      </div>
-
-      {/* Phone Number Input */}
-      <div className="input-group">
-        <label className="input-label">Phone Number (Optional)</label>
-        <div className="input-icon-wrapper">
-          <Phone className="field-icon" size={18} />
-          <input
-            type="tel"
-            placeholder="+91 98765 43210"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
             className="input-field-with-icon"
           />
         </div>

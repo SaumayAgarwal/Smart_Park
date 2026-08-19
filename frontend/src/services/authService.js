@@ -1,10 +1,10 @@
 import { request } from './apiClient';
 
 export const authService = {
-  async sendOtp(email) {
+  async sendOtp(email, phone = null) {
     return request('/auth/send-otp', {
       method: 'POST',
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, phone }),
     });
   },
 

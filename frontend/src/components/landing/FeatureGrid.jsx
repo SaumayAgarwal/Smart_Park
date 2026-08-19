@@ -49,7 +49,6 @@ export const FeatureGrid = () => {
             </div>
           </div>
 
-          {/* Card 2: Instant Booking (White Card - Matching Image 2) */}
           <div className="feature-card instant-booking-card">
             <div className="card-top">
               <div className="feature-icon-circle">
@@ -60,7 +59,7 @@ export const FeatureGrid = () => {
             <div className="card-body">
               <h3 className="feature-card-title">Instant Booking</h3>
               <p className="feature-card-desc">
-                Redis-powered 5-minute hold locks your spot the moment you select it — nobody else can grab it.
+                Redis-powered distributed lock secures your slot the moment you book — no double bookings, ever.
               </p>
             </div>
             <div className="timer-bar-visual">
@@ -68,7 +67,7 @@ export const FeatureGrid = () => {
                 <div className="progress-fill" style={{ width: `${(seconds / 300) * 100}%` }}></div>
               </div>
               <div className="timer-labels">
-                <span>Spot held for 5 minutes</span>
+                <span>Slot secured instantly</span>
                 <span className="timer-countdown">{formatTime(seconds)}</span>
               </div>
             </div>
