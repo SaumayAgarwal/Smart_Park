@@ -5,10 +5,15 @@ const rawPass = process.env.MAIL_PASSWORD || 'plpl pclc ursp aqic';
 const mailPass = rawPass ? rawPass.replace(/\s+/g, '') : '';
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true,
   auth: {
     user: mailUser,
     pass: mailPass,
+  },
+  tls: {
+    rejectUnauthorized: false,
   },
 });
 
