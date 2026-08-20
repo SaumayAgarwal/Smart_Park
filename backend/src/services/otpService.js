@@ -2,6 +2,7 @@ const { redis } = require('../config/redis');
 const { sendEmail, fromEmail } = require('../config/mailer');
 const smsService = require('./smsService');
 
+const OTP_EXPIRATION_SECONDS = 300; // 5 minutes
 const memoryOtpStore = new Map();
 
 class OtpService {
