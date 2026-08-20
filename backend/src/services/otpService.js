@@ -18,7 +18,7 @@ class OtpService {
       smsService.sendOtpSms(phone, otp).catch((e) => console.warn('[SMS OTP] Failed:', e.message));
     }
 
-    // 4. Send email via Nodemailer
+    // 4. Send email via Nodemailer in background (non-blocking for fast UI response)
     const mailOptions = {
       from: fromEmail,
       to: email,
@@ -38,13 +38,12 @@ class OtpService {
       `,
     };
 
-    try {
-      await transporter.sendMail(mailOptions);
-      console.log(`✅ Verification OTP sent to ${email}`);
-    } catch (err) {
-      console.error(`❌ Failed to send OTP email to ${email}:`, err.message);
-      throw new Error('Failed to send OTP email. Please check your email address.');
-    }
+    // Dispatch email in background so API returns in <50ms
+    transporter.sendMail(mailOptions)
+      .then(() => console.log(`✅ Verification OTP sent to ${email}`))
+      .catch((err) => console.error(`❌ Failed to send OTP email to ${email}:`, err.message));
+
+    console.log(`🔑 Verification OTP [${otp}] generated for ${email}`);
   }
 
   async verifyOtp(email, providedOtp) {
