@@ -186,6 +186,9 @@ export const RegisterForm = ({ initialRole = 'DRIVER', onSuccess, onSwitchToLogi
             className="input-field-with-icon"
           />
         </div>
+        <div style={{ fontSize: '0.78rem', color: '#0d9488', marginTop: '4px', fontWeight: 500 }}>
+          💡 Recruiter Demo: Enter OTP from email or use Master OTP: <strong>123456</strong>
+        </div>
       </div>
 
       {/* Password Field + Live Strength Indicator */}

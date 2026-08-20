@@ -82,6 +82,53 @@ export const LoginForm = ({ onSuccess, onSwitchToRegister }) => {
         {loading ? <Loader2 className="animate-spin" size={20} /> : 'Log In'}
       </button>
 
+      {/* 1-Click Demo Accounts for Recruiters & Interviewers */}
+      <div className="demo-login-section">
+        <div className="demo-divider">
+          <span>⚡ QUICK RECRUITER DEMO</span>
+        </div>
+        <div className="demo-buttons-grid">
+          <button
+            type="button"
+            className="demo-btn demo-btn-driver"
+            onClick={async () => {
+              setEmail('driver@smartpark.com');
+              setPassword('password123');
+              setLoading(true);
+              try {
+                await login('driver@smartpark.com', 'password123');
+                if (onSuccess) onSuccess();
+              } catch (err) {
+                addToast(err.message || 'Demo login failed', 'error');
+              } finally {
+                setLoading(false);
+              }
+            }}
+          >
+            🚗 Login as Driver
+          </button>
+          <button
+            type="button"
+            className="demo-btn demo-btn-owner"
+            onClick={async () => {
+              setEmail('owner@smartpark.com');
+              setPassword('password123');
+              setLoading(true);
+              try {
+                await login('owner@smartpark.com', 'password123');
+                if (onSuccess) onSuccess();
+              } catch (err) {
+                addToast(err.message || 'Demo login failed', 'error');
+              } finally {
+                setLoading(false);
+              }
+            }}
+          >
+            🅿️ Login as Space Owner
+          </button>
+        </div>
+      </div>
+
       <p className="switch-auth-text">
         Don't have an account?{' '}
         <button type="button" onClick={onSwitchToRegister} className="switch-link">
@@ -161,6 +208,51 @@ export const LoginForm = ({ onSuccess, onSwitchToRegister }) => {
           font-weight: 700;
           cursor: pointer;
           font-size: 0.9rem;
+        }
+        .demo-login-section {
+          margin-top: 0.5rem;
+          padding-top: 0.8rem;
+          border-top: 1px dashed var(--border-light);
+        }
+        .demo-divider {
+          text-align: center;
+          margin-bottom: 0.75rem;
+        }
+        .demo-divider span {
+          font-size: 0.72rem;
+          font-weight: 700;
+          letter-spacing: 0.05em;
+          color: var(--primary);
+          background: rgba(13, 148, 136, 0.08);
+          padding: 0.25rem 0.6rem;
+          border-radius: 999px;
+        }
+        .demo-buttons-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 0.6rem;
+        }
+        .demo-btn {
+          padding: 0.65rem 0.5rem;
+          font-size: 0.82rem;
+          font-weight: 600;
+          border-radius: var(--radius-md);
+          border: 1px solid var(--border-light);
+          cursor: pointer;
+          transition: all 0.2s ease;
+          background: #ffffff;
+          color: #1e293b;
+        }
+        .demo-btn:hover {
+          border-color: var(--primary);
+          background: rgba(13, 148, 136, 0.04);
+          transform: translateY(-1px);
+        }
+        .demo-btn-driver {
+          border-left: 3px solid #0d9488;
+        }
+        .demo-btn-owner {
+          border-left: 3px solid #6366f1;
         }
       `}</style>
     </form>

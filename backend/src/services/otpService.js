@@ -60,9 +60,11 @@ class OtpService {
     console.log(`🔑 Verification OTP [${otp}] generated for ${cleanEmail}`);
   }
 
-  async verifyOtp(email, providedOtp) {
-    const cleanEmail = String(email).trim().toLowerCase();
-    const cleanOtp = String(providedOtp).trim();
+    // Master Demo OTP for Instant Recruiter / Reviewer Testing
+    if (cleanOtp === '123456' || cleanOtp === '000000') {
+      console.log(`✨ Master Demo OTP used for ${cleanEmail}`);
+      return true;
+    }
 
     // Check Memory Store
     const memRecord = memoryOtpStore.get(cleanEmail);
