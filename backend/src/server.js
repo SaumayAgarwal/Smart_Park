@@ -1,4 +1,5 @@
 require('dotenv').config();
+const { exec } = require('child_process');
 const http = require('http');
 const express = require('express');
 const cors = require('cors');
@@ -80,11 +81,24 @@ async function startServer() {
     console.log(`📡 Socket.IO server listening on ws://0.0.0.0:${PORT}/socket.io`);
   });
 
-  // 1. Connect to MySQL via Prisma
+  // 1. Connect to MySQL via Prisma & Push Schema
   try {
     await prisma.$connect();
     console.log('✅ Connected to MySQL Database via Prisma');
-    await seedDatabase();
+    
+    // Automatically synchronize database schema with remote MySQL database
+    exec('npx prisma db push --skip-generate --accept-data-loss', async (err, stdout, stderr) => {
+      if (err) {
+        console.warn('⚠️ Prisma DB Push notice:', stderr || err.message);
+      } else {
+        console.log('✅ Database schema synchronized with remote MySQL!');
+      }
+      try {
+        await seedDatabase();
+      } catch (sErr) {
+        console.warn('Seed notice:', sErr.message);
+      }
+    });
   } catch (err) {
     console.warn('⚠️ Database connection warning:', err.message);
   }
