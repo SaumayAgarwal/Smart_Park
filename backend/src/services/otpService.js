@@ -2,26 +2,37 @@ const { redis } = require('../config/redis');
 const { sendEmail, fromEmail } = require('../config/mailer');
 const smsService = require('./smsService');
 
-const OTP_EXPIRATION_SECONDS = 300; // 5 minutes
+const memoryOtpStore = new Map();
 
 class OtpService {
   async generateAndSendOtp(email, phone = null) {
+    const cleanEmail = String(email).trim().toLowerCase();
     // 1. Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // 2. Save in Redis with 5-minute TTL
-    const redisKey = `otp:register:${email}`;
-    await redis.set(redisKey, otp, 'EX', OTP_EXPIRATION_SECONDS);
+    // 2. Save in Memory Store (5-minute TTL)
+    memoryOtpStore.set(cleanEmail, {
+      otp,
+      expiresAt: Date.now() + OTP_EXPIRATION_SECONDS * 1000,
+    });
 
-    // 3. Send SMS if phone is provided
+    // 3. Save in Redis with 5-minute TTL
+    const redisKey = `otp:register:${cleanEmail}`;
+    try {
+      await redis.set(redisKey, otp, 'EX', OTP_EXPIRATION_SECONDS);
+    } catch (rErr) {
+      console.warn('[Redis OTP] Warning:', rErr.message);
+    }
+
+    // 4. Send SMS if phone is provided
     if (phone) {
       smsService.sendOtpSms(phone, otp).catch((e) => console.warn('[SMS OTP] Failed:', e.message));
     }
 
-    // 4. Send email via Nodemailer in background (non-blocking for fast UI response)
+    // 5. Send email via Nodemailer / HTTPS in background
     const mailOptions = {
       from: fromEmail,
-      to: email,
+      to: cleanEmail,
       subject: 'SmartPark - Your Verification Code',
       text: `Welcome to SmartPark!\n\nYour verification OTP is: ${otp}\n\nThis OTP will expire in 5 minutes.\nPlease do not share this code with anyone.`,
       html: `
@@ -38,25 +49,40 @@ class OtpService {
       `,
     };
 
-    // Dispatch email in background using sendEmail helper (HTTPS API + SMTP fallback)
     sendEmail({
-      to: email,
+      to: cleanEmail,
       subject: 'SmartPark - Your Verification Code',
       text: mailOptions.text,
       html: mailOptions.html,
     });
 
-    console.log(`🔑 Verification OTP [${otp}] generated for ${email}`);
+    console.log(`🔑 Verification OTP [${otp}] generated for ${cleanEmail}`);
   }
 
   async verifyOtp(email, providedOtp) {
-    const redisKey = `otp:register:${email}`;
-    const storedOtp = await redis.get(redisKey);
+    const cleanEmail = String(email).trim().toLowerCase();
+    const cleanOtp = String(providedOtp).trim();
 
-    if (storedOtp && storedOtp === providedOtp) {
-      await redis.del(redisKey);
+    // Check Memory Store
+    const memRecord = memoryOtpStore.get(cleanEmail);
+    if (memRecord && memRecord.otp === cleanOtp && Date.now() <= memRecord.expiresAt) {
+      memoryOtpStore.delete(cleanEmail);
+      try { await redis.del(`otp:register:${cleanEmail}`); } catch (e) {}
       return true;
     }
+
+    // Check Redis Store
+    try {
+      const storedOtp = await redis.get(`otp:register:${cleanEmail}`);
+      if (storedOtp && String(storedOtp).trim() === cleanOtp) {
+        await redis.del(`otp:register:${cleanEmail}`);
+        memoryOtpStore.delete(cleanEmail);
+        return true;
+      }
+    } catch (rErr) {
+      console.warn('[Redis Verify OTP] Warning:', rErr.message);
+    }
+
     return false;
   }
 }
