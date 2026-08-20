@@ -9,7 +9,8 @@ class WebSocketService {
   connect(onConnectCallback) {
     if (this.socket && this.socket.connected) return;
 
-    this.socket = io({
+    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
+    this.socket = io(BACKEND_URL, {
       path: '/socket.io',
       transports: ['websocket', 'polling'],
       reconnectionDelay: 3000,

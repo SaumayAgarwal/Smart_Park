@@ -1,4 +1,5 @@
-const BASE_URL = '/api';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
+const BASE_URL = `${BACKEND_URL}/api`;
 
 export async function request(endpoint, options = {}) {
   const token = localStorage.getItem('smartpark_token');
