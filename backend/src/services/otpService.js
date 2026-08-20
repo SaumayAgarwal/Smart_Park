@@ -1,5 +1,4 @@
-const { redis } = require('../config/redis');
-const { transporter, fromEmail } = require('../config/mailer');
+const { sendEmail, fromEmail } = require('../config/mailer');
 const smsService = require('./smsService');
 
 const OTP_EXPIRATION_SECONDS = 300; // 5 minutes
@@ -38,10 +37,13 @@ class OtpService {
       `,
     };
 
-    // Dispatch email in background so API returns in <50ms
-    transporter.sendMail(mailOptions)
-      .then(() => console.log(`✅ Verification OTP sent to ${email}`))
-      .catch((err) => console.error(`❌ Failed to send OTP email to ${email}:`, err.message));
+    // Dispatch email in background using sendEmail helper (HTTPS API + SMTP fallback)
+    sendEmail({
+      to: email,
+      subject: 'SmartPark - Your Verification Code',
+      text: mailOptions.text,
+      html: mailOptions.html,
+    });
 
     console.log(`🔑 Verification OTP [${otp}] generated for ${email}`);
   }

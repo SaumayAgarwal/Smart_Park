@@ -1,4 +1,4 @@
-const { transporter, fromEmail } = require('../config/mailer');
+const { sendEmail, fromEmail } = require('../config/mailer');
 
 class EmailService {
   /**
@@ -47,17 +47,11 @@ class EmailService {
       </html>
     `;
 
-    try {
-      await transporter.sendMail({
-        from: fromEmail,
-        to: driver.email,
-        subject: `🅿️ Booking Confirmed - ${spot?.title || 'SmartPark'}`,
-        html: htmlContent,
-      });
-      console.log(`Booking confirmation email sent to ${driver.email}`);
-    } catch (err) {
-      console.warn(`Failed to send booking confirmation email: ${err.message}`);
-    }
+    sendEmail({
+      to: driver.email,
+      subject: `🅿️ Booking Confirmed - ${spot?.title || 'SmartPark'}`,
+      html: htmlContent,
+    });
   }
 }
 
