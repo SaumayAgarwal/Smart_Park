@@ -1,3 +1,4 @@
+const { redis } = require('../config/redis');
 const { sendEmail, fromEmail } = require('../config/mailer');
 const smsService = require('./smsService');
 
